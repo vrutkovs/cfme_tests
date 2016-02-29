@@ -1,0 +1,6 @@
+[tools]
+linters = flake8, gpg
+
+[tool_flake8]
+ignore = E128
+max-line-length = 100
