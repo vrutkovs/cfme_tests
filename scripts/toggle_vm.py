@@ -17,6 +17,8 @@ import time
 
 from utils.providers import get_mgmt
 
+import ipdb; ipdb.set_trace()
+
 
 def main():
     parser = argparse.ArgumentParser(epilog=__doc__,
