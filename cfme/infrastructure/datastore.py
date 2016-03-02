@@ -11,7 +11,9 @@ import cfme.web_ui.menu  # noqa
 
 from cfme.exceptions import CandidateNotFound, ListAccordionLinkNotFound
 from cfme.fixtures import pytest_selenium as sel
-from cfme.web_ui import Quadicon, Region, listaccordion as list_acc, toolbar as tb, paginator as pg
+from cfme.web_ui import (
+    Quadicon, Region, listaccordion as list_acc, toolbar as tb, paginator as pg, flash
+)
 from functools import partial
 from utils.pretty import Pretty
 from utils.providers import get_crud
@@ -185,6 +187,18 @@ class Datastore(Pretty):
                 return True
         except sel.NoSuchElementException:
             return False
+
+    def run_smartstate_analysis(self):
+        """ Runs smartstate analysis on this host
+
+        Note:
+            The host must have valid credentials already set up for this to work.
+        """
+        sel.force_navigate('infrastructure_datastore', context={
+            'datastore': self, 'provider': self.provider})
+        tb.select('Configuration', 'Perform SmartState Analysis', invokes_alert=True)
+        sel.handle_alert()
+        flash.assert_message_contain('"{}": scan successfully initiated'.format(self.name))
 
 
 def get_all_datastores(do_not_navigate=False):
