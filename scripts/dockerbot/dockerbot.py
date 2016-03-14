@@ -174,7 +174,10 @@ class DockerBot(object):
             except KeyboardInterrupt:
                 print("  TEST INTERRUPTED....KILLING ALL THE THINGS")
                 pass
-            pytest.kill()
+            try:
+                pytest.kill()
+            except docker.errors.APIError:
+                pass
             pytest.remove()
             if not self.args['use_wharf']:
                 sel.kill()
