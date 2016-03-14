@@ -84,19 +84,27 @@ class SeleniumDocker(DockerInstance):
 
 class PytestDocker(DockerInstance):
     def __init__(self, name, bindings, env, log_path, links, pytest_con, artifactor_dir,
-                 dry_run=False):
+                 dry_run=False, local_code=None):
         self.dry_run = dry_run
         self.links = links
         self.log_path = log_path
         self.artifactor_dir = artifactor_dir
         self.process_bindings(bindings)
 
+        volumes = [self.artifactor_dir]
+        self.local_code = local_code
+        if local_code:
+            env['CFME_LOCAL_CODE'] = "yep"
+            volumes.append(env['CFME_REPO_DIR'])
+
+        self.env = env
+
         if not self.dry_run:
             pt_name = name
             pt_create_info = dc.create_container(pytest_con, tty=True,
                                                  name=pt_name, environment=env,
                                                  command='sh /setup.sh',
-                                                 volumes=[artifactor_dir],
+                                                 volumes=volumes,
                                                  ports=self.ports)
             self.container_id = _dgci(pt_create_info, 'id')
             pt_container_info = dc.inspect_container(self.container_id)
@@ -104,8 +112,16 @@ class PytestDocker(DockerInstance):
 
     def run(self):
         if not self.dry_run:
+            binds = {self.log_path: {'bind': self.artifactor_dir, 'ro': False}}
+            if self.local_code:
+                binds[self.local_code] = {'bind': self.env['CFME_REPO_DIR'], 'ro': True}
+
+                for rw_dir in ['conf', 'log']:
+                    binds[os.path.join(self.local_code, rw_dir)] = {
+                        'bind': "{}/{}".format(self.env['CFME_REPO_DIR'], rw_dir), 'ro': False}
+
             dc.start(self.container_id, privileged=True, links=self.links,
-                     binds={self.log_path: {'bind': self.artifactor_dir, 'ro': False}},
+                     binds=binds,
                      port_bindings=self.port_bindings)
         else:
             print("Dry run running pytest")
@@ -143,7 +159,8 @@ class DockerBot(object):
                               links=links,
                               pytest_con=self.args['pytest_con'],
                               artifactor_dir=self.args['artifactor_dir'],
-                              dry_run=self.args['dry_run'])
+                              dry_run=self.args['dry_run'],
+                              local_code=self.args['local_code'])
         pytest.run()
 
         if not self.args['nowait']:
@@ -319,6 +336,8 @@ class DockerBot(object):
         self.check_arg('sprout_password', None)
         self.check_arg('sprout_description', None)
 
+        self.check_arg('local_code', None)
+
         if ec:
             sys.exit(127)
 
@@ -481,6 +500,9 @@ if __name__ == "__main__":
                              default=None)
     interaction.add_argument('--nowait',
                              help="No waiting for the container, just fire-and-forget",
+                             default=None)
+    interaction.add_argument('--local-code',
+                             help="Use local code",
                              default=None)
 
     appliance = parser.add_argument_group('Appliance Options')

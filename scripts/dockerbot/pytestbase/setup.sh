@@ -69,19 +69,23 @@ run_pip_update () {
 
 trap on_exit EXIT
 
-log "Downloading the credentials..."
-do_or_die "GIT_SSL_NO_VERIFY=true git clone $CFME_CRED_REPO $CFME_CRED_REPO_DIR >> $ARTIFACTOR_DIR/setup.txt 2>&1"
-mkdir $CFME_REPO_DIR
-cd $CFME_REPO_DIR
-log "Downloading the master branch of cfme_tests repo..."
-do_or_die "git init >> $ARTIFACTOR_DIR/setup.txt 2>&1"
-do_or_die "git remote add origin $CFME_REPO >> $ARTIFACTOR_DIR/setup.txt 2>&1"
-do_or_die "git fetch >> $ARTIFACTOR_DIR/setup.txt 2>&1"
-do_or_die "git checkout -t origin/master >> $ARTIFACTOR_DIR/setup.txt 2>&1"
-MASTER_AVAILABLE=true
+if [ -n "$CFME_LOCAL_CODE" ]; then
+  MASTER_AVAILABLE=true
+else
+  log "Downloading the credentials..."
+  do_or_die "GIT_SSL_NO_VERIFY=true git clone $CFME_CRED_REPO $CFME_CRED_REPO_DIR >> $ARTIFACTOR_DIR/setup.txt 2>&1"
+  mkdir $CFME_REPO_DIR
+  cd $CFME_REPO_DIR
+  log "Downloading the master branch of cfme_tests repo..."
+  do_or_die "git init >> $ARTIFACTOR_DIR/setup.txt 2>&1"
+  do_or_die "git remote add origin $CFME_REPO >> $ARTIFACTOR_DIR/setup.txt 2>&1"
+  do_or_die "git fetch >> $ARTIFACTOR_DIR/setup.txt 2>&1"
+  do_or_die "git checkout -t origin/master >> $ARTIFACTOR_DIR/setup.txt 2>&1"
+  MASTER_AVAILABLE=true
 
-# Copy the credentials files into the conf folder instead of bothing to make symlinks
-cp $CFME_CRED_REPO_DIR/complete/* $CFME_REPO_DIR/conf/
+  # Copy the credentials files into the conf folder instead of bothing to make symlinks
+  cp $CFME_CRED_REPO_DIR/complete/* $CFME_REPO_DIR/conf/
+fi
 
 # If we are using Wharf then setup appropriately, otherwise use the the usual command executor
 if [ -n "$WHARF" ]; then
@@ -118,8 +122,10 @@ cd $CFME_REPO_DIR
 git config --global user.email "me@dockerbot"
 git config --global user.name "DockerBot"
 
-# Get the GPG-Keys
-do_or_die "/get_keys.py >> $ARTIFACTOR_DIR/setup.txt 2>&1" 5 1
+if [ ! -n "$CFME_LOCAL_CODE" ]; then
+  # Get the GPG-Keys
+  do_or_die "/get_keys.py >> $ARTIFACTOR_DIR/setup.txt 2>&1" 5 1
+fi
 
 # die on errors
 set -e
@@ -134,8 +140,10 @@ if [ -n "$CFME_PR" ]; then
     git checkout origin/master
     run_n_log "git merge --no-ff --no-edit origin/pr/$CFME_PR"
 else
-    log "Checking out branch $BRANCH"
-    run_n_log "git checkout -f $BRANCH"
+    if [ ! -n "$CFME_LOCAL_CODE" ]; then
+        log "Checking out branch $BRANCH"
+        run_n_log "git checkout -f $BRANCH"
+    fi
 fi
 
 # If specified, update PIP
