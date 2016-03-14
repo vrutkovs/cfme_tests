@@ -467,10 +467,11 @@ class DockerBot(object):
             print("  Waiting for container for 10 seconds...")
             import time
             time.sleep(10)
-            print("  Initiating VNC watching...")
-            ipport = "vnc://127.0.0.1:" + str(self.sel_vnc_port)
-            cmd = ['xdg-open', ipport]
-            subprocess.Popen(cmd)
+            if hasattr(self, "sel_vnc_port"):
+                print("  Initiating VNC watching...")
+                ipport = "vnc://127.0.0.1:" + str(self.sel_vnc_port)
+                cmd = ['xdg-open', ipport]
+                subprocess.Popen(cmd)
         print
         print("  Press Ctrl+C to kill tests + containers")
 
