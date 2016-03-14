@@ -191,12 +191,16 @@ mail_collector:
     ports:
         smtp: $SMTP
         json: $JSON
+EOF
 
+if [ -n "$TRACKERBOT" ]; then
+  cat >> $CFME_REPO_DIR/conf/env.local.yaml <<EOF
 
 trackerbot:
   username: admin
   url: $TRACKERBOT
 EOF
+fi
 
 run_n_log "cat $CFME_REPO_DIR/conf/env.local.yaml"
 
