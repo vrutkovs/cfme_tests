@@ -41,13 +41,16 @@ def pytest_collection_modifyitems(items):
         doc_meta = {k: v for k, v in item._metadata.get('from_docs', {}).items()}
         output[node_name]['metadata'] = {'from_docs': doc_meta}
 
-    with open('doc_data.yaml', 'w') as f:
-        def dice_representer(dumper, data):
-            return dumper.represent_scalar("chew", "me")
-        import lya
-        from yaml.representer import SafeRepresenter
-        yaml.add_representer(lya.lya.AttrDict, SafeRepresenter.represent_dict)
-        yaml.dump(output, f)
+    try:
+        with open('doc_data.yaml', 'w') as f:
+            def dice_representer(dumper, data):
+                return dumper.represent_scalar("chew", "me")
+            import lya
+            from yaml.representer import SafeRepresenter
+            yaml.add_representer(lya.lya.AttrDict, SafeRepresenter.represent_dict)
+            yaml.dump(output, f)
+    except:
+        pass
 
 
 def pytest_pycollect_makeitem(collector, name, obj):
